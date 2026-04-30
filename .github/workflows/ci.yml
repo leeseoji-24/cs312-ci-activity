@@ -33,7 +33,7 @@ jobs:
         run: flake8 .
 
       - name: Test
-        run: pytest -v
+        run: pytest -v --junitxml=pytest-report.xml
   build:
     needs: quality
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -53,6 +53,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+          
 
       - name: Normalize image name
         run: echo "IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY,,}:latest" >> "$GITHUB_ENV"
@@ -83,3 +84,11 @@ jobs:
         run: |
           docker tag app:smoke-test ${{ env.IMAGE_NAME }}
           docker push ${{ env.IMAGE_NAME }}
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pytest-report-${{ matrix.python-version }}
+          path: pytest-report.xml
+          retention-days: 7
+          if-no-files-found: error
